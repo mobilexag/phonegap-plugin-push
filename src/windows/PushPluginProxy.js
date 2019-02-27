@@ -1,9 +1,25 @@
 var myApp = {};
 var pushNotifications = Windows.Networking.PushNotifications;
 
+function parsePayload(notificicationXml) {
+  var payloadElement = notificicationXml.getElementsByTagName("payload");
+  if (payloadElement.length === 0) {
+    return undefined;
+  }
+
+  var result = JSON.parse(payloadElement[0].innerText);
+  if (typeof result.payload === 'string') {
+    var innerData = JSON.parse(result.payload);
+    result = Object.assign(result, innerData);
+  }
+  return result;
+}
+
+
 var createNotificationJSON = function (e) {
     var result = { message: '' };       //Added to identify callback as notification type in the API in case where notification has no message
     var notificationPayload;
+    var payload;
 
     switch (e.notificationType) {
         case pushNotifications.PushNotificationType.toast:
@@ -30,6 +46,7 @@ var createNotificationJSON = function (e) {
             if (soundFile.length > 0) {
                 result.sound = soundFile[0].getAttribute("src");
             }
+            payload = parsePayload(notificationPayload);
             break;
 
         case pushNotifications.PushNotificationType.badge:
@@ -42,7 +59,10 @@ var createNotificationJSON = function (e) {
             break;
     }
 
-    result.additionalData = { coldstart: false };         // this gets called only when the app is running
+    result.additionalData = {
+      coldstart: false, // this gets called only when the app is running
+      payload,
+    };
     result.additionalData.pushNotificationReceivedEventArgs = e;
     return result;
 }
